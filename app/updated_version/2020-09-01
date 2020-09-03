@@ -1,0 +1,45 @@
+xqkj 主目录
+    ---app 主文件夹
+           --- applocations 应用文件夹
+               --- logic  逻辑文件夹(新建项目放在这下面，如appications_hot等等)  (新版本移除)
+                    --- appications_hot 热点应用文件
+                            --- __init__py  热点蓝本注册文件()
+                       --- views.py 视图函数(接受参数，返回结果，逻辑给fun.py处理)
+                       --- fun.py 逻辑函数(让视图函数更加整洁)
+
+           --- daily_code 日常测试文件(如test.py)
+                --- etc 配置文件
+                    --- sql.ini mysql数据库配置文件
+                ---— __init__.py
+                --- views.py 视图函数
+                --- fun.py 逻辑函数(包含数据库类，读取配置文件函数)
+
+           --- single_file 单个文件夹存放(不启动flask)
+                --- multiple_hot.py 热点函数(直接启动，调用其他文件夹内容，保存数据库)
+                --- word_clouds.py 词云函数(直接展示图片)
+
+           +-- sql_file sql配置文件和创建数据库语句(主要分开主机和本级的配置信息，而不用每次修改)
+                --- sql_aliyun_2499_HOT_baidu_hot.sql 热点表创建语句(数据库名大写HOT，后跟表名baidu_hot)
+                --- local_TEST_command_table.sql 测试层级的sql(保留)
+                --- sql_local_test.ini 本地数据库test，用来测试
+                --- sql_aliyun_2499_hot.ini 外网数据库hot，测试热点
+
+
+    --- manger.py 启动flask(启动成功界面，蓝本注册，端口号等)
+    --- 说明文档.txt(考虑.md)
+
+    --- 2020.09.01
+        --- sql_file  外网配置:(sql_aliyun_2499_hot.ini)
+                      内网配置：(sql_15_135_jobs)
+                      本机配置：(sql_local_test.ini)
+                      配置需求：(sql + "地址" + "数据库名")
+
+        --- 主要更新   配置文件sql_files
+                     重写热点逻辑，主要和数据库对应
+                     封装mysql增加,查找类，初始化传参sql配置路径
+                     修改放置於linux版本下,路徑問題，主要是init文件
+                     移除logic文件文件名
+                     配置flask在pycharm下无法自定义接口(右上角运行处，Edit Config,新建python)
+                     增加index.html，启动显示图片bg.jpg，静态文件等
+
+
