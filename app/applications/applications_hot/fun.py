@@ -6,10 +6,12 @@ import bs4
 from lxml import etree
 from bs4 import BeautifulSoup
 from app.daily_code.fun import Mysql_link
+
 from openpyxl import Workbook
 import hashlib
 import datetime
 import os
+import random
 import requests
 import json
 import urllib.parse
@@ -17,47 +19,6 @@ import time
 from collections import OrderedDict
 
 class Hot(object):
-    def hot_weibo(self):
-        url = "https://s.weibo.com/top/summary"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3756.400 QQBrowser/10.5.4039.400"}
-        try:
-            r = requests.get(url, headers=headers)
-        except BaseException:
-            print("出现了不可预期的错误")
-
-        hotPattern = re.compile(r'(<tr class="">[\s,\S]*?</tr>)')
-        hotList = re.findall(hotPattern, r.text)
-        if hotList == []:
-            print("匹配模式可能出了问题")
-        else:
-            # 接下来开始提取热搜数据
-            dataList = []
-            # print(hotList)
-            for hotPoint in hotList:
-                data = []
-                hotSoup = bs4.BeautifulSoup(hotPoint, 'html.parser')
-                # 获取排名
-                # print(hotSoup.tr.contents[1])
-                rank = hotSoup.tr.contents[1].string
-                if rank is None:
-                    data.append("速升")
-                else:
-                    data.append(rank)
-
-                # 获取热搜名称
-                # print(hotSoup.tr.contents[3])
-                name = hotSoup.tr.contents[3].a.string
-                name1 = hotSoup.tr.contents
-                data.append(name)
-                dataList.append(data)
-            dict_data = {}
-            # print(dataList)
-            for i in dataList:
-                # print(i)
-                dict_data[i[0]] = i[1]
-
-        return str(dict_data)  # 返回str 用在eval()上
 
     def hot_baidu(self):
 
@@ -112,245 +73,70 @@ class Hot(object):
         headers = {'User-Agent': 'Mozilla/5.0'}
         html = get_html(url, headers)
         data = get_pages(html)
-        print(113,type(data),data)
+        print(113, type(data), data)
         return str(data)
 
-    def hot_zhihu(self):
+    def weibo_zhihu(self):
+        def get_data(url, num):
+            # 解析格式与基础信息
+            path = ['//*[@id="TopstoryContent"]/div/div/div[2]/section/div[2]/a',
+                    '//*[@id="pl_top_realtimehot"]/table/tbody/tr/td[2]/a']
+            web_name = ["知乎热榜",
+                        "微博热搜"]
+            pre = ['',
+                   'https://s.weibo.com/']
+            get_title = ['/h2/text()',
+                         '/text()']
+            get_link = ['/@href',
+                        '/@href']
 
-        url = 'https://s.weibo.com/top/summary?cate=realtimehot'
-        r = requests.get(url)
-        time.sleep(0.3)
-        html = etree.HTML(r.text)
-        nodes = html.xpath("//div[@class='data']/table/tbody/tr")
-        # print('{:2}   {:7}   {}'.format('序号','搜索次数','热搜内容'))
-
-        dict_result = {}
-        for node in nodes[1:]:
-            hot_paiming = node.xpath('./td[1]/text()')[0]
-            hot_name = node.xpath('./td[2]/a/text()')[0]
-            hot_search_nums = node.xpath('./td[2]/span/text()')[0]
-            # print('{:2}   {:7}   {}'.format(hot_paiming,hot_search_nums,hot_name))
-            dict_result[hot_paiming] = hot_name
-        # print(dict_result)
-        return dict_result
-
-    def hot_douyin(self):
-
-
-        '''
-        百度热搜，返回数据
-        '''
-        # 构建请求头
-        headers = {
-            "Cookie": "install_id=53112482656; ttreq=1$a4ed279b42b9acb3dee9a3a3c2d645ce99ed786f; odin_tt=38d535495242f853ffdf693ae531a152910b1047bbb3ba5c8e2fa7f3cbd7f6a1ec9f6027fc44ea36c4bd45281487d4a7; sid_guard=d074b1c430eef87a3599e20ef34a5555%7C1543976393%7C5184000%7CSun%2C+03-Feb-2019+02%3A19%3A53+GMT; uid_tt=4e0b25bc326fae6b428afc5826243eeb; sid_tt=d074b1c430eef87a3599e20ef34a5555; sessionid=d074b1c430eef87a3599e20ef34a5555",
-            "Accept-Encoding": "gzip",
-            "X-SS-REQ-TICKET": "1543976807598",
-            "X-Tt-Token": "00d074b1c430eef87a3599e20ef34a5555b97ecb95bff1a3d1a81726386a1adf7a91df6c32bfa121fc10400ffede8df72016",
-            "sdk-version": "1",
-            "X-SS-TC": "0",
-            "User-Agent": "com.ss.android.ugc.aweme/350 (Linux; U; Android 8.0.0; zh_CN; MI 5; Build/OPR1.170623.032; Cronet/58.0.2991.0)"
-        }
-
-        def getHTML(url):
-            '''
-            get方式获取html
-            :param url:
-            :return:
-            '''
-            rsp = requests.get(url, headers=headers)
-            import time
-            time.sleep(0.3)
-            return rsp.content.decode(rsp.apparent_encoding, 'ignore')
-
-        def postHTML(url):
-            '''
-            post方式获取html
-            :param url:
-            :return:
-            '''
-            rsp = requests.post(url, headers=headers)
-            return rsp.content.decode(rsp.apparent_encoding, 'ignore')
-
-        def getVideo(key):
-            '''
-            获取第一个视频连接地址
-            :param key:
-            :return:
-            '''
-            # 编译关键词
-            key = urllib.parse.quote(key)
-            # 拼接关键词搜索接口url
-            url = 'https://api.amemv.com/aweme/v1/general/search/single/?keyword=' + key + \
-                '&offset=0&count=10&is_pull_refresh=0&hot_search=0&latitude=30.725991&longitude=103.968091&ts=1543984658&js_sdk_version=1.2.2&app_type=normal&manifest_version_code=350&_rticket=1543984657736&ac=wifi&device_id=60155513971&iid=53112482656&os_version=8.0.0&channel=xiaomi&version_code=350&device_type=MI%205&language=zh&uuid=862258031596696&resolution=1080*1920&openudid=8aa8e21fca47053b&update_version_code=3502&app_name=aweme&version_name=3.5.0&os_api=26&device_brand=Xiaomi&ssmix=a&device_platform=android&dpi=480&aid=1128&as=a1e5055072614ce6a74033&cp=5813c65d2e7d0769e1[eIi&mas=01327dcd31044d72007555ed00c3de0b5dcccc0c2cec866ca6c62c'
-            # 获取搜索界面并转化为json对象
-            jsonObj = json.loads(postHTML(url))
-            # 获取data对应v
-            metes = jsonObj['data']
-            nums = len(metes)
-            uri = ''
-            # 多个视频列表捕获第一个视频地址即刻返回视频uri(视频唯一标识)
-            for _ in range(nums):
-                data = metes[_]['aweme_info']['video']
-                if 'download_suffix_logo_addr' in data.keys():
-                    uri = data['download_suffix_logo_addr']['uri']
-                    break
-            # 拼接视频地址
-            videoURL = 'https://aweme.snssdk.com/aweme/v1/playwm/?video_id=' + uri + '&line=0'
-            # 返回视频地址
-            return videoURL
-
-        def main():
-            '''
-            入口函数
-            :return:
-            '''
-            ts = str(time.time())
-            # 入口url（热门列表url）
-            url = 'https://aweme.snssdk.com/aweme/v1/hot/search/list/?detail_list=0&ts=' + ts + '&js_sdk_version=1.2.2&app_type=normal&manifest_version_code=350&_rticket=1543976807872&ac=wifi&device_id=60155513971&iid=53112482656&os_version=8.0.0&channel=xiaomi&version_code=350&device_type=MI%205&language=zh&resolution=1080*1920&openudid=8aa8e21fca47053b&update_version_code=3502&app_name=aweme&version_name=3.5.0&os_api=26&device_brand=Xiaomi&ssmix=a&device_platform=android&dpi=480&aid=1128&as=a1c56320b7f6ccc7874900&cp=3d63c15f7576037de1_uMy&mas=01258b5acd59f6bccb58178086286fdded0c0c9c2cec1cecc6c6c6'
-            # 获取热门列表数据
-            html = getHTML(url)
-            # 转化为json对象
-            jsonObj = json.loads(html)
-            # 获取每一个热门数据列表
-            word_list = jsonObj['data']['word_list']
-            index = 1
-            # print(word_list)
-            dict_data = {}
-            # 循环解析每个热门事件
-            for li in word_list:
-                # try:
-                word = li['word']
-                # hot_value = li['hot_value']
-                hot_index = index
-                # videoURL = getVideo(word)
-                # print()
-                index += 1
-                # print(hot_index, word)
-                time.sleep(1)
-                # print("排名：%d ,关键词: %s ,热度值: %d ,视频下载地址: %s" % (hot_index, word, hot_value, videoURL))
-                # except Exception as e:
-                #     pass
-                # finally:
-                #     time.sleep(5)
-
-                dict_data[hot_index] = word
-
-            j = json.dumps(dict_data, ensure_ascii=False)
-            return dict_data
-            # print(j)
-        a = main()
-        return a
-
-    def hot_toutiao(self):
-
-        start_url = 'https://www.toutiao.com/api/pc/feed/?category=news_hot&utm_source=toutiao&widen=1&max_behot_time='
-        url = 'https://www.toutiao.com'
-
-        headers = {
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
-        }
-        # 此处cookies可从浏览器中查找，为了避免被头条禁止爬虫
-        cookies = {'tt_webid': '6649949084894053895'}
-
-        max_behot_time = '0'  # 链接参数
-        title = []  # 存储新闻标题
-        source_url = []  # 存储新闻的链接
-        s_url = []  # 存储新闻的完整链接
-        source = []  # 存储发布新闻的公众号
-        media_url = {}  # 存储公众号的完整链接
-
-        def get_as_cp():  # 该函数主要是为了获取as和cp参数，程序参考今日头条中的加密js文件：home_4abea46.js
-            zz = {}
-            now = round(time.time())
-            # print(now) # 获取当前计算机时间
-            e = hex(int(now)).upper()[2:]  # hex()转换一个整数对象为16进制的字符串表示
-            # print('e:', e)
-            a = hashlib.md5()  # hashlib.md5().hexdigest()创建hash对象并返回16进制结果
-            # print('a:', a)
-            a.update(str(int(now)).encode('utf-8'))
-            i = a.hexdigest().upper()
-            # print('i:', i)
-            if len(e) != 8:
-                zz = {'as': '479BB4B7254C150',
-                      'cp': '7E0AC8874BB0985'}
-                return zz
-            n = i[:5]
-            a = i[-5:]
-            r = ''
-            s = ''
-            for i in range(5):
-                s = s + n[i] + e[i]
-            for j in range(5):
-                r = r + e[j + 3] + a[j]
-            zz = {
-                'as': 'A1' + s + e[-3:],
-                'cp': e[0:3] + r + 'E1'
+            # 获取网页
+            headers = {
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.8',
+                'Cache-Control': 'max-age=0',
+                'cookie': '_zap=2a9ae3ab-f2e0-40ff-8a2e-02429c9f0453; d_c0="AGBYvpm7gxGPTiIzHTJtlff00GVsElpFRn0=|1593678215"; _ga=GA1.2.646074918.1593678215; q_c1=a1321aa361ac4df2a0709bb3660b1f60|1596371586000|1596371586000; _gid=GA1.2.1339168512.1596893630; tst=h; tshl=; _xsrf=3woUaVZtwUGqsDKF39WzhwXpU4DZsUV3; SESSIONID=RvdKKA5NNC2mAzAPi145hK2I2IHUIp0Zz16MOt1aWLb; JOID=UloUB0kg0XEVGHmbLiThaxIUcxU-cKQQWFE6rWVskEB9XwHYffEkXU4YeJ0tDY26KUIJ-175v2eF9D1gw2yF8Yk=; osd=W1gdAE8p03gSHnCZJyPnYhAddBM3cq0XXlg4pGJqmUJ0WAfRf_gjW0cacZorBI-zLkQA-Vf-uW6H_Tpmym6M9o8=; Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49=1596977420,1596978055,1596978079,1596978130; capsion_ticket="2|1:0|10:1596979172|14:capsion_ticket|44:OWI2NWE3MTVhZDIxNDFiNGI5ZDliZTkzZTE5ZDA1Zjg=|4be161b423d84930ff865a122e22fff3d030d468f49953b4a4dce73318c457e4"; z_c0="2|1:0|10:1596979174|4:z_c0|92:Mi4xNDhPdkFnQUFBQUFBWUZpLW1idURFU1lBQUFCZ0FsVk41a1VkWUFBR0N4dXF4Y2lkdnJDZ2c3bmMtaFhZQ0JjT25B|5020e8ce44cadc7cc35f2ee7b5d1c3f30f85c212d5e4fac081894b11c05110b6"; KLBRSID=d6f775bb0765885473b0cba3a5fa9c12|1596979708|1596977420; Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49=1596979708',
+                'User-Agent': 'Mozilla%d/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36' % random.randint(
+                    55, 100),
+                'Connection': 'keep-alive',
+                'Referer': 'http://www.baidu.com/'
             }
-            # print('zz:', zz)
-            return zz
+            r = requests.get(url, headers=headers)
+            # print(r.status_code)
+            s = etree.HTML(r.text)
 
-        def getdata(url, headers, cookies):  # 解析网页函数
-            time.sleep(0.3)
-            r = requests.get(url, headers=headers, cookies=cookies)
-            # print(url)
-            data = json.loads(r.text)
-            return data
+            # 获取数据
+            titles = s.xpath(path[num] + get_title[num])
+            links = s.xpath(path[num] + get_link[num])
 
-        def savedata(title, s_url, source, media_url):  # 存储数据到文件
-            # 存储数据到xlxs文件
-            wb = Workbook()
-            if not os.path.isdir(os.getcwd() + '/result'):  # 判断文件夹是否存在
-                os.makedirs(os.getcwd() + '/result')  # 新建存储文件夹
-            filename = os.getcwd() + '/result/result-' + datetime.datetime.now().strftime(
-                '%Y-%m-%d-%H-%m') + '.xlsx'  # 新建存储结果的excel文件
-            ws = wb.active
-            ws.title = 'data'  # 更改工作表的标题
-            ws['A1'] = '标题'  # 对表格加入标题
-            ws['B1'] = '新闻链接'
-            ws['C1'] = '头条号'
-            ws['D1'] = '头条号链接'
-            for row in range(2, len(title) + 2):  # 将数据写入表格
-                _ = ws.cell(column=1, row=row, value=title[row - 2])
-                _ = ws.cell(column=2, row=row, value=s_url[row - 2])
-                _ = ws.cell(column=3, row=row, value=source[row - 2])
-                _ = ws.cell(column=4, row=row,
-                            value=media_url[source[row - 2]])
+            # num==1是微博，由于微博的会出现推荐的话题，这里将其舍去
+            if num == 1:
+                error = 'javascript:void(0);'
+                for j in range(20):
+                    if links[j] == error:
+                        del links[j]
+                        del titles[j]
 
-            wb.save(filename=filename)  # 保存文件
+            # 将前15个结果存到res里
+            res = web_name[num] + "\n"
+            data_dict = {}
+            for i in range(random.randint(10, 15)):
+                data_dict[str(i + 1)] = titles[i]
+                res = res + str(i + 1) + " " + titles[i]
+                # res = res + str(i+1) + " " + titles[i] + "\n" + pre[num] + links[i] + "\n\n"
+            return data_dict
 
-        def main(max_behot_time, title, source_url, s_url, source, media_url):  # 主函数
-            dict_data = {}
-            for i in range(
-                    3):  # 此处的数字类似于你刷新新闻的次数，正常情况下刷新一次会出现10条新闻，但夜存在少于10条的情况；所以最后的结果并不一定是10的倍数
-                ascp = get_as_cp()  # 获取as和cp参数的函数
-                demo = getdata(
-                    start_url + max_behot_time + '&max_behot_time_tmp=' + max_behot_time + '&tadrequire=true&as=' +
-                    ascp['as'] + '&cp=' + ascp['cp'], headers, cookies)
-                # print(demo)
-                # time.sleep(1)
-                for j in range(len(demo['data'])):
-                    # print(demo['data'][j]['title'])
-                    if demo['data'][j]['title'] not in title:
-                        title.append(demo['data'][j]['title'])  # 获取新闻标题
-                        source_url.append(
-                            demo['data'][j]['source_url'])  # 获取新闻链接
-                        source.append(demo['data'][j]['source'])  # 获取发布新闻的公众号
-                    if demo['data'][j]['source'] not in media_url:
-                        media_url[demo['data'][j]['source']] = url + \
-                            demo['data'][j]['media_url']  # 获取公众号链接
-                # print(max_behot_time)
-                # 获取下一个链接的max_behot_time参数的值
-                max_behot_time = str(demo['next']['max_behot_time'])
-
-                for index in range(len(title)):
-                    key = repr(index)
-                    value = repr(title[index])
-                    dict_data[key] = value.replace('"', '')
-            print(dict_data)
-            return dict_data
-        res = main(max_behot_time, title, source_url, s_url, source, media_url)
-        # savedata(title, s_url, source, media_url)
-        return res
+        # 爬取url
+        url = ['https://www.zhihu.com/hot',
+               'https://s.weibo.com/top/summary']
+        n = len(url)
+        res = ""
+        result_list = []
+        for i in range(n):
+            res = get_data(url[i], i)
+            result_list.append(res)
+        print(result_list)
+        return result_list
 
     def hot_sort(self):
 
@@ -367,8 +153,7 @@ class Hot(object):
         parent_path = os.path.dirname(current_path)
         tr_path = os.path.dirname(parent_path)
         sql_file_name = tr_path + sql_file_name
-        print(370,sql_file_name)
-        
+        print(370, sql_file_name)
 
         MQ = Mysql_link(sql_file_name)
         res = list(MQ.select_mysql(select_sql))
@@ -386,5 +171,3 @@ class Hot(object):
         last_dic = {item[0]: item[1] for item in new_dic.items()}
         # print(118, last_dic)
         return last_dic
-# aa = Hot().hot_zhihu()
-# print(aa)
