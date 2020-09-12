@@ -6,12 +6,12 @@ import bs4
 from lxml import etree
 from bs4 import BeautifulSoup
 from app.daily_code.fun import Mysql_link
+import random
 
 from openpyxl import Workbook
 import hashlib
 import datetime
 import os
-import random
 import requests
 import json
 import urllib.parse
@@ -74,7 +74,7 @@ class Hot(object):
         html = get_html(url, headers)
         data = get_pages(html)
         print(113, type(data), data)
-        return str(data)
+        return json.dumps(data)
 
     def weibo_zhihu(self):
         def get_data(url, num):
@@ -135,7 +135,6 @@ class Hot(object):
         for i in range(n):
             res = get_data(url[i], i)
             result_list.append(res)
-        print(result_list)
         return result_list
 
     def hot_sort(self):
