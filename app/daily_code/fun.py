@@ -4,69 +4,119 @@
 import pymysql
 import os
 import datetime
-# mysql
+
 class Mysql_link(object):
     # 初始化数据库配置
-    def __init__(self,cfg_sql_file):
+    def __init__(self, cfg_sql_file):
 
-        cfg_sql_file =oper_sys(cfg_sql_file)
-        print(19,cfg_sql_file)
+        cfg_sql_file = oper_sys(cfg_sql_file)
+        print(19, cfg_sql_file)
 
         self.ip = cfg("mysql_hot", "ip", cfg_sql_file)  #
         self.name = cfg("mysql_hot", "name", cfg_sql_file)
         self.password = cfg("mysql_hot", "pw", cfg_sql_file)
         self.db = cfg("mysql_hot", "db", cfg_sql_file)  # 数据库名称
+        self.port = int(cfg("mysql_hot", "port", cfg_sql_file))
 
+    def select_mysql(self, sql):
 
-
-    def select_mysql(self,sql):
-        db=pymysql.connect(self.ip, self.name, self.password, self.db)
-        cursor=db.cursor()
+        db = pymysql.connect(
+            self.ip,
+            self.name,
+            self.password,
+            self.db,
+            self.port)
+        cursor = db.cursor()
         cursor.execute(sql)
-        data=cursor.fetchall()
+        data = cursor.fetchall()
         db.close()
-
         return data
 
     # 新增数据
     def insert_mysql(self, sql):
-        db=pymysql.connect(self.ip, self.name, self.password, self.db)
-        cursor=db.cursor()
+        db = pymysql.connect(
+            self.ip,
+            self.name,
+            self.password,
+            self.db,
+            self.port)
+        cursor = db.cursor()
         # sql = """INSERT INTO EMPLOYEE(FIRST_NAME,LAST_NAME, AGE, SEX, INCOME)VALUES ('Mac', 'Mohan', 20, 'M', 2000)"""
         try:
             cursor.execute(sql)
             db.commit()
             print("數據存儲成功")
-        except Exception  as  e:
+        except Exception as e:
             print(e)
             db.rollback()
         db.close()
 
 
-def cfg(config_name,para,file_path):
+def cfg(config_name, para, file_path):
     # 导包
     import configparser
-    config=configparser.ConfigParser()  # 类实例化
+    config = configparser.ConfigParser()  # 类实例化
     config.read(file_path)
-    value=config[config_name][para]
+    value = config[config_name][para]
     return value
+
+
+def paddle_fenci(content):
+
+    import paddlehub as hub
+    lac = hub.Module(name='lac')
+    test_text = []
+    test_text.append(content)
+    inputs = {"text": test_text}
+    results = lac.lexical_analysis(data=inputs)
+    results_list = [
+        "LOC",
+        "PER",
+        "ORG",
+        "nr",
+        "ns",
+        "nz",
+        "nt",
+        "nw",
+        "vn",
+        "n"]
+    for result in results:
+        for i in result["tag"]:
+            for j in results_list:
+                if i == j:
+                    num = result["tag"].index(i)
+                    print(result["word"][num])
+                    if len(result["word"][num]) < 10:
+                        return result["word"][num]
 
 
 def multiple_hot_json(hot_json, hot_name):
     # 解析json，存储带数据库
     for key, value in hot_json.items():
-        key=repr(key)
-        value=repr(value)
+        key = repr(key)
         for i in range(len(hot_json)):
 
-            ts=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S ')
-            ts=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S ')
-        datatime=repr(str(ts).replace("-", "").replace(" ", "").replace(":", ""))
-        category=repr(hot_name)
+            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S ')
+            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S ')
+        datatime = repr(
+            str(ts).replace(
+                "-",
+                "").replace(
+                " ",
+                "").replace(
+                ":",
+                ""))
+        category = repr(hot_name)
 
         collect_time = datetime.datetime.now().strftime('%Y-%m-%d')
         collect_time = repr(collect_time)
-        sql=f'INSERT INTO baidu_hot(id,content,timez,category,collect_time) VALUES({key},{value},{datatime},{category},{collect_time})'
+        import uuid
+        uu = uuid.uuid4()
+        key_word = repr(paddle_fenci(value))
+        uu = repr(str(uu))
+        value = repr(value)
+
+        sql = f'INSERT INTO baidu_hot(id,content,timez,category,collect_time,uuid,key_word) VALUES({key},{value},{datatime},{category},{collect_time},{uu},{key_word})'
         print(sql + ";")
         sql_file_name = r'/app/sql_files/sql_aliyun_2499_hot.ini'
         sql_file_name = three_path(sql_file_name)
@@ -92,7 +142,8 @@ def select_data_dict():
         for j in res_two:
             two_list = []
             two = "".join(j)
-            selec_sql3 = "select c.`*` FROM command_table c WHERE c.DEPARTMENT ='" + one + "'  and c.OFFICE ='" + two + "'"
+            selec_sql3 = "select c.`*` FROM command_table c WHERE c.DEPARTMENT ='" + \
+                one + "'  and c.OFFICE ='" + two + "'"
             res_three = MQ.select_mysql(selec_sql3)  # 筛选数据
             for k in res_three:
                 three_dict = {}
@@ -104,20 +155,19 @@ def select_data_dict():
                 two_list.append(three_dict)
             office_dict[two] = two_list
         one_dict[one] = office_dict
-    return  one_dict
-
+    return one_dict
 
 
 def oper_sys(cfg_sql_file):
     import os
     if os.name == "nt":
         sql_file_name = cfg_sql_file.replace("\\", "\\\\").replace("/", "\\\\")
-        return  sql_file_name
+        return sql_file_name
 
     if os.name == "posix":
         sql_file_name = cfg_sql_file.replace("\\", "/")
         print(sql_file_name)
-        return  sql_file_name
+        return sql_file_name
 
 
 def three_path(path):
@@ -128,9 +178,16 @@ def three_path(path):
     join_file_name = tr_path + path
     return join_file_name
 
-# if __name__ == '__main__':
-#     version_sql="SELECT VERSION()"  # 查询版本号
-#     select_sql="SELECT count(*) FROM baidu_hot"  # 测试数据
 
+if __name__ == '__main__':
+
+    sql_file_name = r'/app/sql_files/sql_local_test.ini'
+    sql_file_name = three_path(sql_file_name)
+    MQ = Mysql_link(sql_file_name)
+    MQ.select_mysql("SELECT VERSION()")
+
+    # version_sql="SELECT VERSION()"  # 查询版本号
+    # select_sql="SELECT count(*) FROM baidu_hot"  # 测试数据
+    #
     # sql_version=Mysql_link().select_mysql(version_sql)  # 查询版本号
     # res=Mysql_link().select_mysql(select_sql)  # 筛选数据
