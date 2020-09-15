@@ -1,0 +1,8 @@
+#   代码标准化pe8,
+    弃用09-01记录版本模式,更换updated_version到根目录,方便查看更新记录
+    增加root路径在manger.py下,而不用每个文件写root路径
+    删除一些不必要的代码,如print(),和一些注释文件
+    保留一部分print(),方便查看sql语句和debug分析
+    添加热点视图当日关键字接口today_keyword
+
+220.09.15

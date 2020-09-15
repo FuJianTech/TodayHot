@@ -1,22 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import re
-import bs4
-from lxml import etree
-from bs4 import BeautifulSoup
-from app.daily_code.fun import Mysql_link
 import random
-
-from openpyxl import Workbook
-import hashlib
 import datetime
 import os
 import requests
 import json
-import urllib.parse
-import time
 from collections import OrderedDict
+from TodayHot.app.daily_code.fun import Mysql_link
+from lxml import etree
+from bs4 import BeautifulSoup
 
 class Hot(object):
 
@@ -31,7 +23,6 @@ class Hot(object):
             soup = BeautifulSoup(html, 'html.parser')
             all_topics = soup.find_all('tr')[1:]
             dict_data = {}
-            data_list = []
             for each_topic in all_topics:
                 # topic_link  = each_topic.find('td', class_='')  # 链接
                 topic_times = each_topic.find('td', class_='last')  # 搜索指数
@@ -49,23 +40,7 @@ class Hot(object):
                     topic_name = each_topic.find('td', class_='keyword').get_text() \
                         .replace(' ', '').replace('\n', '') \
                         .replace('search', '')
-
-                    topic_times = each_topic.find(
-                        'td',
-                        class_='last').get_text().replace(
-                        ' ',
-                        '').replace(
-                        '\n',
-                        '')
-                    # print('排名：{}，标题：{}，热度：{}'.format(topic_rank,topic_name,topic_times))
-                    tplt = "排名：{0:^4}\t标题：{1:{3}^15}\t热度：{2:^8}"
-                    tplt = "{0:^4}\t{1:{3}^15}\t热度：{2:^8}"
-                    # print(tplt.format(topic_rank, topic_name, topic_times, chr(12288)))
-
-                    # print(topic_rank, topic_name)
-
                     dict_data[topic_rank] = topic_name
-                    # data_list.append(topic_name)  #
 
             return dict_data
 
@@ -83,8 +58,7 @@ class Hot(object):
                     '//*[@id="pl_top_realtimehot"]/table/tbody/tr/td[2]/a']
             web_name = ["知乎热榜",
                         "微博热搜"]
-            pre = ['',
-                   'https://s.weibo.com/']
+
             get_title = ['/h2/text()',
                          '/text()']
             get_link = ['/@href',
@@ -102,7 +76,6 @@ class Hot(object):
                 'Referer': 'http://www.baidu.com/'
             }
             r = requests.get(url, headers=headers)
-            # print(r.status_code)
             s = etree.HTML(r.text)
 
             # 获取数据
@@ -123,27 +96,25 @@ class Hot(object):
             for i in range(random.randint(10, 15)):
                 data_dict[str(i + 1)] = titles[i]
                 res = res + str(i + 1) + " " + titles[i]
-                # res = res + str(i+1) + " " + titles[i] + "\n" + pre[num] + links[i] + "\n\n"
             return data_dict
 
         # 爬取url
         url = ['https://www.zhihu.com/hot',
                'https://s.weibo.com/top/summary']
         n = len(url)
-        res = ""
         result_list = []
         for i in range(n):
             res = get_data(url[i], i)
             result_list.append(res)
         return result_list
 
-    def hot_sort(self):
+    def key_word(self):
 
         data_time = datetime.datetime.now().strftime('%Y-%m-%d')
         collect_time = repr(data_time)
-        # 测试数据
-        select_sql = f'SELECT content FROM baidu_hot where collect_time = {collect_time}'
-        # sql_file_name = r'E:\code\xqkj\app\sql_files\sql_aliyun_2499_hot.ini'
+        # 测试数据 ，分为关键字和当天文本，返回计数后的数据
+        # select_sql_time = f'SELECT content FROM baidu_hot where collect_time = {collect_time}'
+        select_sql_keyword = f'SELECT key_word FROM baidu_hot where collect_time = {collect_time}'
         sql_file_name = r'/sql_files/sql_aliyun_2499_hot.ini'
 
         # 当前路径
@@ -152,10 +123,12 @@ class Hot(object):
         parent_path = os.path.dirname(current_path)
         tr_path = os.path.dirname(parent_path)
         sql_file_name = tr_path + sql_file_name
-        print(370, sql_file_name)
+        print(370, sql_file_name) # 日志查看，勿删
 
         MQ = Mysql_link(sql_file_name)
-        res = list(MQ.select_mysql(select_sql))
+        res = list(MQ.select_mysql(select_sql_keyword))
+
+
         data_dict = {}
         for key in res:
             key = "".join(key)
@@ -168,5 +141,17 @@ class Hot(object):
                 key=lambda kv: kv[1],
                 reverse=True))
         last_dic = {item[0]: item[1] for item in new_dic.items()}
-        # print(118, last_dic)
-        return last_dic
+        import operator
+        last_dic = sorted(last_dic.items(), key=operator.itemgetter(1), reverse=True)[0:9]
+
+        res_dic = {}
+        num = 1
+        for j in last_dic:
+            res_dic[num] = j[0]
+            num = num+1
+        return res_dic,last_dic
+
+
+if __name__ == '__main__':
+    data  = Hot().key_word()[1]
+    print(data)

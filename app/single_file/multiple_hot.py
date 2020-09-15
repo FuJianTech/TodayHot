@@ -1,9 +1,10 @@
 # !/bin/env python
 # -*- coding=utf-8 -*-
 
-import sys
-# sys.path.append(r'/home/FuJianTech/TodayHot')  linux
-sys.path.append(r'E:\FuJianTech\TodayHot')  # 修改为自己的目录
+# root路径写在 manager.py中,此版本#sys勿删，下版本删除或者更新
+# import sys
+# # sys.path.append(r'/home/FuJianTech/TodayHot')  linux
+# sys.path.append(r'E:\FuJianTech\TodayHot')  # 修改为自己的目录
 
 from TodayHot.app.daily_code.fun import multiple_hot_json
 from TodayHot.app.applications.applications_hot.fun import Hot
